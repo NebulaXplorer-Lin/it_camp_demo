@@ -1,0 +1,141 @@
+《从 localhost 到全世界》Hello World 课堂命令
+
+使用方式
+Windows 学员跟做第 1–4、7 步的本地部分。云服务器部分由讲师演示。
+“你的名字”“你的提交邮箱”“仓库HTTPS地址”“SERVER_IP”均为占位内容，先替换再执行。
+课前安装 Python 3、Git、cloudflared。安装后重新打开 PowerShell。
+本地命令在解压后的 hello-world 文件夹中执行。可在资源管理器打开该文件夹，在地址栏输入 powershell 后回车。
+不同编号有不同执行环境，不要把整份文件当成脚本连续执行。
+
+1. 本地运行（PowerShell 窗口 A）
+python --version
+python app.py
+
+浏览器打开：http://localhost:8000
+点击“向服务器打个招呼”，确认出现服务器回应与 v1。
+如果 Windows 只提供 py 命令，用 py app.py。macOS/Linux 用 python3 app.py。
+终端保持打开。停止使用 Ctrl+C。端口冲突时加 --port 8001，后续所有目标地址也改为 8001。
+
+2. 临时分享（新的 PowerShell 窗口 B）
+cloudflared --version
+cloudflared tunnel --url http://127.0.0.1:8000
+
+首次安装 cloudflared 的一种方式（课前完成）：
+winget install --id Cloudflare.cloudflared --exact
+
+没有 winget 时从 Cloudflare 官方下载页选择 Windows 版本，并把程序加入 PATH 或使用其完整路径。
+复制终端实际输出的 https://...trycloudflare.com 地址，在另一台设备打开并点击按钮。
+窗口 A 与窗口 B 都要保持运行。临时网址每次启动可能变化，不预先编造网址或二维码。
+
+3. 本地记录版本（第三个 PowerShell 窗口 C，仍在 hello-world 文件夹）
+git --version
+git init -b main
+git config user.name "你的名字"
+git config user.email "你的提交邮箱"
+git add app.py hello-world.service
+git add .gitignore README.md
+git commit -m "完成 Hello World v1"
+git log --oneline -1
+
+上述初始化仅用于未初始化的这个示例文件夹。不要在整个课程目录或已有项目中重复初始化。
+user.name 和 user.email 是本仓库提交记录的作者信息，不是 GitHub 登录。
+
+4. 推送 GitHub（PowerShell 窗口 C）
+先在 GitHub 新建公开的空 hello-world 仓库，只包含本课示例。不选择初始化 README、.gitignore 或 License。
+复制仓库 HTTPS 地址，替换下行双引号内的内容：
+$repo = "仓库HTTPS地址"
+git remote add origin $repo
+git push -u origin main
+
+按 Git Credential Manager 等官方支持方式完成登录。不要把密码或 token 写进命令。
+刷新仓库网页，核对文件和提交。公开课堂示例便于讲师的服务器克隆，实际私有项目须按权限配置认证。
+未完成账号准备的学员可先保留本地提交，课后补做此步。
+
+5. 云端运行（讲师演示，示例假设 Ubuntu/Debian + ubuntu 用户）
+先在自己的 PowerShell 中连接，把 SERVER_IP 替换成测试服务器的公网 IP：
+ssh ubuntu@SERVER_IP
+
+以下在远程 Linux 终端执行。先核对系统、用户和工具：
+cat /etc/os-release
+whoami
+python3 --version
+git --version
+
+仅当确认 Ubuntu/Debian 且未安装对应工具时，按实际需要安装：
+sudo apt update
+sudo apt install python3 git
+
+在用户家目录中取得示例，把双引号内内容替换为实际仓库地址：
+cd ~
+git clone "仓库HTTPS地址" hello-world
+cd hello-world
+python3 app.py --host 0.0.0.0 --port 8000
+
+若 hello-world 目录已存在，先检查内容；不要删除或覆盖已有项目，也不要重复 clone 到非空目录。
+课前在腾讯云轻量服务器防火墙允许 TCP 8000 的课堂访问来源，并检查操作系统防火墙。SSH 使用 TCP 22，已有连接规则不要随意改动。
+浏览器检查：http://SERVER_IP:8000
+看到页面后仍需点击按钮检查接口。
+真实测试服务器的系统、账号、目录与规则需课前核实，本命令单不代表远端已经部署。
+
+6. 持续运行（讲师在远程 Linux 终端）
+先 Ctrl+C 停止前台运行，确认当前目录为 ~/hello-world。
+检查 hello-world.service 中 User、WorkingDirectory、ExecStart。默认假设 ubuntu、/home/ubuntu/hello-world、/usr/bin/python3。
+sudo cp hello-world.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now hello-world
+systemctl is-active hello-world
+systemctl is-enabled hello-world
+exit
+
+应分别看到 active 和 enabled。退出 SSH 后再次打开云端网页并点击按钮。
+Restart=on-failure 负责异常退出后的重启；enable 负责开机启动。
+
+7. 发布 v2
+学员在自己的电脑中编辑 app.py 顶部两行并保存：
+MESSAGE = "Hello World v2!"
+VERSION = "v2"
+
+在窗口 A 按 Ctrl+C，重新运行 python app.py。浏览器确认本地页面和按钮均显示新版，再在窗口 C 执行：
+git add app.py
+git commit -m "更新到 v2"
+git push
+git rev-parse --short HEAD
+
+讲师重新 SSH 登录云服务器，在远程 Linux 终端执行：
+cd ~/hello-world
+git pull --ff-only
+sudo systemctl restart hello-world
+git rev-parse --short HEAD
+
+核对同一个演示仓库的本地与云端提交标识一致，再刷新云端页面确认 v2 与按钮回应。
+注意：讲师云服务器跟踪讲师自己的演示仓库，不会自动取得每位学员各自仓库的修改。
+
+8. 一个可恢复的故障（仅停止这个 hello-world 示例服务）
+sudo systemctl stop hello-world
+systemctl status hello-world --no-pager
+sudo journalctl -u hello-world -n 30 --no-pager
+sudo systemctl start hello-world
+
+浏览器可能保留旧页面，点击按钮才能确认请求是否失败。恢复后刷新页面并重试按钮。
+主动 stop 是管理操作，不会由 Restart=on-failure 自动拉起。
+排错补充：curl -i http://127.0.0.1:8000/health
+若服务器本机能访问、公网不能，进一步检查监听地址、端口和防火墙。
+向 AI 描述：在哪台机器、执行的命令、预期结果、完整报错、已经检查的项目。隐去凭据和个人数据。
+
+9. 域名与 HTTPS（最后提及，课后扩展）
+域名注册与实名、ICP 备案、DNS 记录和 HTTPS 证书分别处理。按服务器接入商的具体要求准备。
+DNS 记录格式示例：类型 A，主机记录 hello，值为服务器公网 IPv4。
+确认拥有并配置自己的域名后，再把下例替换成真实域名：
+nslookup hello.example.com
+
+example.com 是示例域名，不能拿它作为自己的演示网站。
+DNS 不会自动消除 :8000，也不自动签发证书。后续使用网站入口（如 Nginx）和证书方案，并安排续期。
+Quick Tunnel 的公开网址已经提供 HTTPS；课堂无需购买域名才能先完成临时分享。
+
+参考资料
+Cloudflare Quick Tunnels：https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/
+Cloudflare 下载：https://developers.cloudflare.com/tunnel/downloads/
+GitHub 本地代码上传：https://docs.github.com/en/migrations/importing-source-code/using-the-command-line-to-import-source-code/adding-locally-hosted-code-to-github
+腾讯云防火墙：https://cloud.tencent.com/document/product/1207/44577
+systemd：https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html
+腾讯云备案说明：https://cloud.tencent.com/document/faq/243/19630
