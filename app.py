@@ -13,7 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
 # 课堂发布新版时，只需修改下面两行，然后重启应用。
-MESSAGE = "Hello World，欢迎来到IT训练营！"
+MESSAGE = "你好！"
 VERSION = "v1"
 
 PAGE = """<!doctype html>
